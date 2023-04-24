@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV File Uploader</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>CSV File Uploader</h1>
+        <input type="file" id="csvFile" accept=".csv">
+        <button id="processData">Upload & Display Data</button>
+        <!-- Add this inside the container div -->
+        <button id="toggleButton" class="toggle-button">Toggle Stocks/Options</button>
+        <div id="tableContainer" class="table-container"></div>
+
+        <!-- Add this inside the container div -->
+        <div id="stocksTableContainer" class="table-container"></div>
+        <div id="optionsTableContainer" class="table-container"></div>
+
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
