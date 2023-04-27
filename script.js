@@ -2,37 +2,38 @@ document.getElementById('processData').addEventListener('click', () => {
     const fileInput = document.getElementById('csvFile');
     const file = fileInput.files[0];
     if (!file) {
-      alert('Please select a CSV file.');
-      return;
+        alert('Please select a CSV file.');
+        return;
     }
-  
+
     const reader = new FileReader();
     reader.readAsText(file, 'UTF-8');
     reader.onload = (evt) => {
-      const data = evt.target.result;
-      tradingData = parseTradingData(data);
-      displayStocksTable(tradingData);
-  
-      document.getElementById('toggleButton').addEventListener('click', toggleTable);
+        const data = evt.target.result;
+        tradingData = parseTradingData(data);
+        //displayStocksTable(tradingData);
+        displayCompletedTradesTable(tradingData);
+
+        document.getElementById('toggleButton').addEventListener('click', toggleTable);
     };
-  });
+});
 
 let currentTable = 'stocks';
 
 function toggleTable() {
     if (!tradingData) {
-      alert('Please upload a CSV file first.');
-      return;
+        alert('Please upload a CSV file first.');
+        return;
     }
-  
+
     if (currentTable === 'stocks') {
-      currentTable = 'options';
-      displayOptionsTable(tradingData);
+        currentTable = 'options';
+        displayOptionsTable(tradingData);
     } else {
-      currentTable = 'stocks';
-      displayStocksTable(tradingData);
+        currentTable = 'stocks';
+        displayStocksTable(tradingData);
     }
-  }  
+}
 
 let tradingData;
 
@@ -42,6 +43,18 @@ function parseTradingData(data) {
 
     for (let i = 1; i < rows.length; i++) {
         const cells = rows[i].split(',');
+
+        // Check if the row has at least 12 columns
+        if (cells.length < 12) {
+            continue;
+        }
+
+        // Check if the first column contains a valid date format
+        const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+        if (!dateRegex.test(cells[0].trim())) {
+            continue;
+        }
+
         const date = cells[0].trim();
         const account = cells[1].trim();
         const action = cells[2].trim();
@@ -74,6 +87,13 @@ function parseTradingData(data) {
             amount
         });
     }
+
+    // Sort transactions by date
+    transactions.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateA - dateB;
+    });
 
     return transactions;
 }
@@ -144,3 +164,71 @@ function displayOptionsTable(transactions) {
     container.innerHTML = '';
     container.appendChild(table);
 }
+
+// ... (rest of the code remains unchanged)
+
+function calculateCompletedTrades(transactions) {
+    const completedTrades = [];
+    const openPositions = {};
+  
+    transactions.forEach((transaction) => {
+      if (!transaction.symbol || transaction.symbol.startsWith('-')) {
+        return;
+      }
+      const { action, symbol } = transaction;
+      const upperSymbol = symbol.toUpperCase();
+  
+      if (action.startsWith("YOU BOUGHT")) {
+        console.log("BUYING " + transaction.symbol + " at price " + transaction.price);
+        if (!openPositions[upperSymbol]) {
+          openPositions[upperSymbol] = {
+            totalShares: 0,
+            averagePrice: 0,
+          };
+        }
+        const position = openPositions[upperSymbol];
+        const newTotalShares = position.totalShares + transaction.quantity;
+        position.averagePrice = (position.averagePrice * position.totalShares + transaction.price * transaction.quantity) / newTotalShares;
+        position.totalShares = newTotalShares;
+      } else if (action.startsWith("YOU SOLD")) {
+        console.log("SELLING " + transaction.symbol + " at price " + transaction.price);
+        const position = openPositions[upperSymbol];
+        if (position && position.totalShares >= transaction.quantity) {
+          completedTrades.push({
+            symbol: transaction.symbol,
+            quantity: Math.abs(transaction.quantity),
+            buyDate: "", // We no longer have a specific buy date
+            sellDate: transaction.date,
+            buyPrice: parseFloat(position.averagePrice).toFixed(2),
+            sellPrice: transaction.price,
+            pl: parseFloat(((transaction.price - position.averagePrice) * Math.abs(transaction.quantity)).toFixed(2))
+          });
+          position.totalShares -= transaction.quantity;
+          if (position.totalShares === 0) {
+            delete openPositions[upperSymbol];
+          }
+        }
+      }
+    });
+  
+    return completedTrades;
+  }  
+
+function displayCompletedTradesTable(transactions) {
+    const completedTrades = calculateCompletedTrades(transactions);
+    const table = createTable(completedTrades, [
+        'sellDate',
+        'symbol',
+        'buyPrice',
+        'sellPrice',
+        'quantity',
+        'pl'
+    ]);
+
+    const container = document.getElementById('completedTradesTableContainer');
+    container.innerHTML = '';
+    container.appendChild(table);
+}
+
+  // ... (rest of the code remains unchanged)
+
