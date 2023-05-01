@@ -13,16 +13,12 @@
         <h1>CSV File Uploader</h1>
         <input type="file" id="csvFile" accept=".csv">
         <button id="processData">Upload & Display Data</button>
-        <!-- Add this inside the container div -->
-        <button id="toggleButton" class="toggle-button">Toggle Stocks/Options</button>
-        <div id="tableContainer" class="table-container"></div>
-        <!-- ... (rest of the HTML remains unchanged) -->
-        <div id="completedTradesTableContainer"></div>
-        <!-- ... (rest of the HTML remains unchanged) -->
-        <!-- Add this inside the container div -->
+        <button id="toggleAllTrades" class="toggle-button">Show All Trades</button>
+        <button id="toggleOptionsTrades" class="toggle-button">Show Options Trades</button>
+        <button id="toggleCompletedTrades" class="toggle-button">Show Completed Trades</button>
+        <div id="completedTradesTableContainer" class="table-container"></div>
         <div id="stocksTableContainer" class="table-container"></div>
         <div id="optionsTableContainer" class="table-container"></div>
-
     </div>
     <script src="script.js"></script>
 </body>

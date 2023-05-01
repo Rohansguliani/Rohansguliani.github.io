@@ -1,39 +1,47 @@
-document.getElementById('processData').addEventListener('click', () => {
+function displayTable(transactions, tableType) {
+    if (!transactions) {
+      alert('Please upload a CSV file first.');
+      return;
+    }
+  
+    if (tableType === 'stocks') {
+      displayStocksTable(transactions);
+    } else if (tableType === 'options') {
+      displayOptionsTable(transactions);
+    } else if (tableType === 'completed') {
+      displayCompletedTradesTable(transactions);
+    }
+  }
+  
+  document.getElementById('processData').addEventListener('click', () => {
     const fileInput = document.getElementById('csvFile');
     const file = fileInput.files[0];
     if (!file) {
-        alert('Please select a CSV file.');
-        return;
+      alert('Please select a CSV file.');
+      return;
     }
-
+  
     const reader = new FileReader();
     reader.readAsText(file, 'UTF-8');
     reader.onload = (evt) => {
-        const data = evt.target.result;
-        tradingData = parseTradingData(data);
-        //displayStocksTable(tradingData);
-        displayCompletedTradesTable(tradingData);
-
-        document.getElementById('toggleButton').addEventListener('click', toggleTable);
+      const data = evt.target.result;
+      tradingData = parseTradingData(data);
+  
+      displayTable(tradingData, 'completed');
     };
-});
-
-let currentTable = 'stocks';
-
-function toggleTable() {
-    if (!tradingData) {
-        alert('Please upload a CSV file first.');
-        return;
-    }
-
-    if (currentTable === 'stocks') {
-        currentTable = 'options';
-        displayOptionsTable(tradingData);
-    } else {
-        currentTable = 'stocks';
-        displayStocksTable(tradingData);
-    }
-}
+  });
+  
+  document.getElementById('toggleAllTrades').addEventListener('click', () => {
+    displayTable(tradingData, 'stocks');
+  });
+  
+  document.getElementById('toggleOptionsTrades').addEventListener('click', () => {
+    displayTable(tradingData, 'options');
+  });
+  
+  document.getElementById('toggleCompletedTrades').addEventListener('click', () => {
+    displayTable(tradingData, 'completed');
+  });  
 
 let tradingData;
 
@@ -136,7 +144,7 @@ function displayStocksTable(transactions) {
         'amount'
     ]);
 
-    const container = document.getElementById('tableContainer');
+    const container = document.getElementById('stocksTableContainer');
     container.innerHTML = '';
     container.appendChild(table);
 }
@@ -160,7 +168,7 @@ function displayOptionsTable(transactions) {
         'amount'
     ]);
 
-    const container = document.getElementById('tableContainer');
+    const container = document.getElementById('optionsTableContainer');
     container.innerHTML = '';
     container.appendChild(table);
 }
@@ -229,6 +237,3 @@ function displayCompletedTradesTable(transactions) {
     container.innerHTML = '';
     container.appendChild(table);
 }
-
-  // ... (rest of the code remains unchanged)
-
