@@ -4,14 +4,29 @@ function displayTable(transactions, tableType) {
         return;
     }
 
+    const stocksTable = document.getElementById('stocksTableContainer');
+    const optionsTable = document.getElementById('optionsTableContainer');
+    const completedTradesTable = document.getElementById('completedTradesTableContainer');
+
     if (tableType === 'stocks') {
         displayStocksTableAll(transactions);
+        stocksTable.style.display = 'block';
+        optionsTable.style.display = 'none';
+        completedTradesTable.style.display = 'none';
     } else if (tableType === 'options') {
         displayOptionsTable(transactions);
+        stocksTable.style.display = 'none';
+        optionsTable.style.display = 'block';
+        completedTradesTable.style.display = 'none';
     } else if (tableType === 'completed') {
         displayCompletedTradesTable(transactions);
+        stocksTable.style.display = 'none';
+        optionsTable.style.display = 'none';
+        completedTradesTable.style.display = 'block';
     }
 }
+
+
 function addEventListeners() {
     document.getElementById('processData').addEventListener('click', () => {
         const fileInput = document.getElementById('csvFile');

@@ -74,3 +74,10 @@ table tr:nth-child(odd) {
     color: #0056b3;
     text-decoration: underline;
 }
+
+#stocksTableContainer,
+#optionsTableContainer,
+#completedTradesTableContainer {
+    display: none;
+}
+
