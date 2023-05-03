@@ -13,3 +13,8 @@ Displaying trade details by symbol: When users view the completed trades table, 
 Calculation of profit/loss: For each completed trade, the application calculates the profit/loss based on the difference between the buying and selling prices, multiplied by the quantity of shares traded. To obtain an accurate P/L calculation, the transactions are sorted chronologically before processing. The application uses an algorithm to compute completed trades, considering the remaining open positions and average buying prices of each security. This approach allows users to get a precise understanding of their P/L for each completed trade.
 
 In summary, this web application provides users with a comprehensive tool to analyze their trading data, focusing on chronologically ordered completed trades for accurate P/L calculations. By carefully parsing the CSV file and filtering out irrelevant lines, the application ensures that only valid transaction data is processed and displayed, making it easy for users to gain insights into their trading activities.
+
+
+Remaining Tasks:
+- Figure out a better way to download fidelity reports holistically so that no transactions are missed
+- add filtered completed trade table to symbol details page

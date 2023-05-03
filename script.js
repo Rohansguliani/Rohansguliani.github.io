@@ -223,6 +223,8 @@ function displayOptionsTable(transactions) {
     container.appendChild(table);
 }
 
+let totalPL = 0;
+
 function calculateCompletedTrades(transactions) {
     const completedTrades = [];
     const openPositions = {};
@@ -250,6 +252,7 @@ function calculateCompletedTrades(transactions) {
             console.log("SELLING " + transaction.symbol + " at price " + transaction.price);
             const position = openPositions[upperSymbol];
             if (position && position.totalShares >= transaction.quantity) {
+                pl = parseFloat(((transaction.price - position.averagePrice) * Math.abs(transaction.quantity)).toFixed(2));
                 completedTrades.push({
                     symbol: transaction.symbol,
                     quantity: Math.abs(transaction.quantity),
@@ -257,12 +260,13 @@ function calculateCompletedTrades(transactions) {
                     sellDate: transaction.date,
                     buyPrice: parseFloat(position.averagePrice).toFixed(2),
                     sellPrice: transaction.price,
-                    pl: parseFloat(((transaction.price - position.averagePrice) * Math.abs(transaction.quantity)).toFixed(2))
+                    pl: pl
                 });
-                position.totalShares -= transaction.quantity;
+                position.totalShares += transaction.quantity;
                 if (position.totalShares === 0) {
                     delete openPositions[upperSymbol];
                 }
+                totalPL += pl;
             }
         }
     });
@@ -284,6 +288,28 @@ function displayCompletedTradesTable(transactions) {
     const container = document.getElementById('completedTradesTableContainer');
     container.innerHTML = '';
     container.appendChild(table);
+    container.append(totalPL);
+}
+
+function displayCompletedTradesTableSpecific(transactions, symbol) {
+
+    transactions = transactions.filter((transaction) => {
+        return transaction.symbol && transaction.symbol == symbol;
+    });
+    const completedTrades = calculateCompletedTrades(transactions);
+    const table = createTable(completedTrades, [
+        'sellDate',
+        'symbol',
+        'buyPrice',
+        'sellPrice',
+        'quantity',
+        'pl'
+    ], createSymbolLink);
+
+    const container = document.getElementById('completedTradesTableContainer');
+    container.innerHTML = '';
+    container.appendChild(table);
+    container.append(totalPL);
 }
 
 function createSymbolLink(row) {
@@ -306,6 +332,7 @@ function loadSymbolDetails() {
     if (symbol) {
         const tradingData = JSON.parse(localStorage.getItem('tradingData'));
         displayStocksTable(tradingData, symbol);
+        displayCompletedTradesTableSpecific(tradingData, symbol);
     } else {
         alert('Invalid symbol');
     }
