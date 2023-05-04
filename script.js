@@ -35,7 +35,7 @@ function addEventListeners() {
             alert('Please select a CSV file.');
             return;
         }
-    
+
         const reader = new FileReader();
         reader.readAsText(file, 'UTF-8');
         reader.onload = (evt) => {
@@ -45,18 +45,20 @@ function addEventListeners() {
             displayTable(tradingData, 'completed');
         };
     });
-    
+
     document.getElementById('toggleAllTrades').addEventListener('click', () => {
         displayTable(tradingData, 'stocks');
     });
-    
+
     document.getElementById('toggleOptionsTrades').addEventListener('click', () => {
         displayTable(tradingData, 'options');
     });
-    
+
     document.getElementById('toggleCompletedTrades').addEventListener('click', () => {
         displayTable(tradingData, 'completed');
     });
+
+    restoreHomePageState();
 }
 
 const processDataButton = document.getElementById('processData');
@@ -66,9 +68,30 @@ if (processDataButton) {
 
 let tradingData;
 
+function removeDuplicateTransactions(transactions) {
+    const uniqueTransactions = [];
+
+    transactions.forEach(transaction => {
+        const duplicate = uniqueTransactions.find(existingTransaction => {
+            return existingTransaction.date === transaction.date &&
+                existingTransaction.action === transaction.action &&
+                existingTransaction.symbol === transaction.symbol &&
+                existingTransaction.quantity === transaction.quantity &&
+                existingTransaction.price === transaction.price;
+        });
+
+        if (!duplicate) {
+            uniqueTransactions.push(transaction);
+        }
+    });
+
+    return uniqueTransactions;
+}
+
+
 function parseTradingData(data) {
     const rows = data.split(/\r?\n/).filter(row => row.trim());
-    const transactions = [];
+    let transactions = [];
 
     for (let i = 1; i < rows.length; i++) {
         const cells = rows[i].split(',');
@@ -102,6 +125,7 @@ function parseTradingData(data) {
         }
 
         transactions.push({
+            index: i,
             date,
             account,
             action,
@@ -117,17 +141,33 @@ function parseTradingData(data) {
         });
     }
 
-    // Sort transactions by date
+    // Remove duplicate transactions
+    transactions = removeDuplicateTransactions(transactions);
+
+    // Sort transactions by date, and prioritize BUY actions over SELL actions for the same date
     transactions.sort((a, b) => {
         const dateA = new Date(a.date);
         const dateB = new Date(b.date);
-        return dateA - dateB;
+        if (dateA - dateB !== 0) {
+            return dateA - dateB;
+        } else {
+            // If dates are equal, prioritize BUY actions over SELL actions
+            const actionA = a.action.startsWith("YOU BOUGHT") ? -1 : 1;
+            const actionB = b.action.startsWith("YOU BOUGHT") ? -1 : 1;
+
+            if (actionA !== actionB) {
+                return actionA - actionB;
+            } else {
+                // If both transactions have the same action, use the index property to sort
+                return b.index - a.index;
+            }
+        }
     });
 
     return transactions;
 }
 
-function createTable(data, columns, hyperlinkCallback = null) {
+function createTable(data, columns, hyperlinkCallback = null, clickCallback = null) {
     const table = document.createElement('table');
     const header = table.createTHead();
     const headerRow = header.insertRow(0);
@@ -146,6 +186,12 @@ function createTable(data, columns, hyperlinkCallback = null) {
                 hyperlink.href = hyperlinkCallback(row);
                 hyperlink.innerHTML = row[column];
                 cell.appendChild(hyperlink);
+
+                if (clickCallback) {
+                    hyperlink.addEventListener('click', (event) => {
+                        clickCallback(row);
+                    });
+                }
             } else {
                 cell.innerHTML = row[column];
             }
@@ -226,6 +272,7 @@ function displayOptionsTable(transactions) {
 let totalPL = 0;
 
 function calculateCompletedTrades(transactions) {
+    let totalPL = 0;
     const completedTrades = [];
     const openPositions = {};
 
@@ -237,7 +284,7 @@ function calculateCompletedTrades(transactions) {
         const upperSymbol = symbol.toUpperCase();
 
         if (action.startsWith("YOU BOUGHT")) {
-            console.log("BUYING " + transaction.symbol + " at price " + transaction.price);
+            console.log("BUYING " + transaction.symbol + " at price " + transaction.price + " i: " + transaction.index);
             if (!openPositions[upperSymbol]) {
                 openPositions[upperSymbol] = {
                     totalShares: 0,
@@ -249,7 +296,7 @@ function calculateCompletedTrades(transactions) {
             position.averagePrice = (position.averagePrice * position.totalShares + transaction.price * transaction.quantity) / newTotalShares;
             position.totalShares = newTotalShares;
         } else if (action.startsWith("YOU SOLD")) {
-            console.log("SELLING " + transaction.symbol + " at price " + transaction.price);
+            console.log("SELLING " + transaction.symbol + " at price " + transaction.price + " i: " + transaction.index);
             const position = openPositions[upperSymbol];
             if (position && position.totalShares >= transaction.quantity) {
                 pl = parseFloat(((transaction.price - position.averagePrice) * Math.abs(transaction.quantity)).toFixed(2));
@@ -271,11 +318,11 @@ function calculateCompletedTrades(transactions) {
         }
     });
 
-    return completedTrades;
+    return {completedTrades, totalPL};
 }
 
 function displayCompletedTradesTable(transactions) {
-    const completedTrades = calculateCompletedTrades(transactions);
+    const {completedTrades, totalPL} = calculateCompletedTrades(transactions);
     const table = createTable(completedTrades, [
         'sellDate',
         'symbol',
@@ -283,11 +330,12 @@ function displayCompletedTradesTable(transactions) {
         'sellPrice',
         'quantity',
         'pl'
-    ], createSymbolLink);
+    ], createSymbolLink, saveHomePageState);
 
     const container = document.getElementById('completedTradesTableContainer');
     container.innerHTML = '';
     container.appendChild(table);
+
     container.append(totalPL);
 }
 
@@ -296,7 +344,7 @@ function displayCompletedTradesTableSpecific(transactions, symbol) {
     transactions = transactions.filter((transaction) => {
         return transaction.symbol && transaction.symbol == symbol;
     });
-    const completedTrades = calculateCompletedTrades(transactions);
+    const {completedTrades, totalPL} = calculateCompletedTrades(transactions);
     const table = createTable(completedTrades, [
         'sellDate',
         'symbol',
@@ -306,7 +354,7 @@ function displayCompletedTradesTableSpecific(transactions, symbol) {
         'pl'
     ], createSymbolLink);
 
-    const container = document.getElementById('completedTradesTableContainer');
+    const container = document.getElementById('completedTradesTableSpecificContainer');
     container.innerHTML = '';
     container.appendChild(table);
     container.append(totalPL);
@@ -319,7 +367,7 @@ function createSymbolLink(row) {
 
 function loadSymbolDetails() {
     const symbolHeader = document.getElementById('symbolHeader');
-    
+
     if (!symbolHeader) {
         return;
     }
@@ -344,5 +392,24 @@ function loadTradingDataFromLocalStorage() {
         tradingData = JSON.parse(tradingDataString);
     }
 }
+
+function saveHomePageState() {
+    localStorage.setItem('completedTradesTableContainer', document.getElementById('completedTradesTableContainer').innerHTML);
+    // Save other elements' states here...
+}
+
+
+function restoreHomePageState() {
+    const searchInput = localStorage.getItem('completedTradesTableContainer');
+    console.log('Restoring home page state...'); // Add this line
+    if (searchInput !== null) {
+        console.log('Restored data:', searchInput); // Add this line
+        document.getElementById('completedTradesTableContainer').innerHTML = searchInput;
+    } else {
+        console.log('No data to restore.'); // Add this line
+    }
+    // Restore other elements' states here...
+}
+
 
 loadTradingDataFromLocalStorage();

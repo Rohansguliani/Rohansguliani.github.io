@@ -78,6 +78,6 @@ table tr:nth-child(odd) {
 #stocksTableContainer,
 #optionsTableContainer,
 #completedTradesTableContainer {
-    display: none;
+    display: block;
 }
 
